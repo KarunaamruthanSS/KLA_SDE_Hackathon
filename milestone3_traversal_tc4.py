@@ -112,5 +112,5 @@ def traverse_and_generate_path(json_file: str, output_file: str):
 # Example usage:
 traverse_and_generate_path(
      "./TestCases/Milestone3/Input_Milestone3_Testcase4.json",
-     "./TestCases/Milestone3/SequentialTraversal.json"
+     "./TestCases/Milestone3/TestCase_3_4.json"
 )
