@@ -1,8 +1,8 @@
-# Software Workshop 2025: Advanced TSP Solver for Semiconductor Manufacturing
+# KLA Software Workshop 2025: Advanced TSP Solver for Semiconductor Manufacturing
 
 This repository contains solutions for a progressive software workshop focused on solving increasingly complex variants of the Traveling Salesman Problem (TSP) in the context of semiconductor wafer inspection systems.
 
-## 🎯 Workshop Overview
+## 🎯 Hackathon Overview
 
 The workshop progresses through 4 milestones, each building upon the previous one to solve more realistic manufacturing scenarios:
 
