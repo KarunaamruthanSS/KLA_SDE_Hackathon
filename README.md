@@ -1,103 +1,169 @@
-# Heuristic TSP Solver with Forbidden Zones
+# Software Workshop 2025: Advanced TSP Solver for Semiconductor Manufacturing
 
-## 🔹 Purpose
-This code solves a **Traveling Salesman Problem (TSP)** variant where:
+This repository contains solutions for a progressive software workshop focused on solving increasingly complex variants of the Traveling Salesman Problem (TSP) in the context of semiconductor wafer inspection systems.
 
-- A stage (moving platform) must visit all dies (points) on a wafer.  
-- Motion is constrained by **velocity and acceleration limits**.  
-- Certain **forbidden rectangular zones** must be avoided.  
-- Camera rotation (angular motion) may be required to align with die orientations.  
+## 🎯 Workshop Overview
 
-The solver outputs an **optimal visiting order of dies** and a **safe path** that avoids forbidden zones.
+The workshop progresses through 4 milestones, each building upon the previous one to solve more realistic manufacturing scenarios:
 
----
+### **Milestone 1: Basic Open TSP**
+- **Problem**: Visit all dies on a wafer starting from an initial position
+- **Constraints**: Simple velocity-based motion model
+- **Solutions**: 
+  - `milestone-1_dp.py`: Dynamic programming with bitmask (exact solution)
+  - `milestone-1_bb.py`: Branch and bound approach (exact solution)
+  - `milestone-1_c.py`: Alternative DP implementation
 
-## 📂 Modules & Classes
+### **Milestone 2: Motion with Angular Constraints**
+- **Problem**: Add camera rotation requirements for die alignment
+- **New Features**: 
+  - Camera velocity and acceleration limits
+  - Die orientation alignment (0°, 90°, 180°, 270°)
+  - Trapezoidal motion profiles for both stage and camera
+- **Solutions**:
+  - `milestone2_dp.py`: Exact DP solution with orientation states
+  - `milestone2_heuristic.py`: Heuristic approach with 2-opt optimization
 
-### 1. `Point`
-Represents a 2D coordinate with helper methods.
+### **Milestone 3: Wafer Boundary Constraints**
+- **Problem**: Filter dies based on wafer diameter
+- **New Features**:
+  - Wafer radius filtering (only visit dies within the wafer boundary)
+  - Improved path validation and repair mechanisms
+- **Solution**: `milestone3_heuristic.py`: Enhanced heuristic with wafer constraints
 
-**Attributes:**
-- `x`, `y`: Coordinates.
+### **Milestone 4: Obstacle Avoidance**
+- **Problem**: Navigate around forbidden rectangular zones
+- **New Features**:
+  - Forbidden zones that cannot be crossed
+  - Visibility graph construction with obstacle corners
+  - Floyd-Warshall shortest path computation
+  - Intelligent path planning that prefers direct routes when safe
+- **Solution**: `milestone_4.py`: Complete obstacle-aware TSP solver
 
-**Methods:**
-- `from_tuple(t)`: Create from `(x, y)` tuple.  
-- `to_list()`: Return `[x, y]` rounded for JSON output.  
-- `distance_to(other)`: Euclidean distance to another point.  
-- `__eq__`, `__hash__`: Equality and hashing for set operations.  
-- `__repr__`: String representation.  
+## 🏗️ Architecture
 
----
+### Core Components
 
-### 2. Motion Functions
-- `motion_time(dist, vmax, amax)`:  
-  Computes time to move a distance `dist` with trapezoidal/triangular velocity profile.  
+#### **Point Class**
+```python
+class Point:
+    def __init__(self, x: float, y: float)
+    def distance_to(other: Point) -> float
+    def to_list() -> List[float]  # For JSON output
+```
 
-- `segment_intersects_rect(p1, p2, bl, tr)`:  
-  Checks if a line segment intersects a forbidden rectangle.  
+#### **Motion Model**
+```python
+def motion_time(dist: float, vmax: float, amax: float) -> float
+```
+Implements trapezoidal/triangular velocity profiles for realistic motion planning.
 
-- `project_to_rect_edge(p, bl, tr)`:  
-  Projects a point inside a forbidden zone to the nearest edge.  
+#### **TSPInputLoader**
+Parses JSON input containing:
+- Initial stage position and camera angle
+- Stage/camera velocity and acceleration limits
+- Die corner coordinates (converted to centers and orientations)
+- Wafer diameter for boundary filtering
+- Forbidden rectangular zones
 
----
+#### **Solver Classes**
+- **OpenTSPSolver**: Exact solutions using DP or branch-and-bound
+- **HeuristicTSPSolver**: Fast approximate solutions with local optimization
 
-### 3. `TSPInputLoader`
-Loads and preprocesses JSON input.
+### Key Algorithms
 
-**Responsibilities:**
-- Parse initial position, velocities, accelerations, angles.  
-- Extract die centers and orientations.  
-- Filter dies outside wafer radius.  
-- Load forbidden zones.  
+#### **Dynamic Programming (Milestones 1-2)**
+- Bitmask DP for exact TSP solutions
+- State space: `dp[mask][last_die][orientation]`
+- Time complexity: O(n² × 2ⁿ × 4) for angular version
 
-**Returns:**
-- Die centers, orientations, initial position, motion parameters, forbidden zones.  
+#### **Heuristic Approach (Milestones 2-4)**
+- Nearest neighbor construction with intelligent tie-breaking
+- 2-opt local search optimization
+- Multiple restarts for solution quality
 
----
+#### **Obstacle Avoidance (Milestone 4)**
+- Visibility graph with obstacle corner nodes
+- Floyd-Warshall for shortest obstacle-free paths
+- Priority system: direct paths preferred over detours
 
-### 4. `HeuristicTSPSolver`
-Core solver implementing obstacle-aware nearest-neighbor heuristic.
+## 📁 Project Structure
 
-**Initialization:**
-- Builds visibility graph with points and obstacle corners.  
-- Computes safe paths using Floyd–Warshall (excluding dies as intermediates).  
-- Precomputes stage times between dies.  
+```
+├── Solutions/
+│   ├── Solution_Milestone_1/     # Basic TSP solutions
+│   ├── Solution_Milestone_2/     # Angular motion solutions  
+│   ├── Solution_Milestone_3/     # Wafer boundary solutions
+│   └── Solution_Milestone_4/     # Complete obstacle avoidance
+├── TestCases/
+│   ├── Milestone1/              # Test inputs for each milestone
+│   ├── Milestone2/
+│   ├── Milestone3/
+│   └── Milestone4/
+├── Software_Workshop_Presentation_2025_Day1.pdf
+├── Software_Workshop_Presentation_2025_Day2.pdf
+└── README.md
+```
 
-**Key Methods:**
-- `_segment_is_safe(p1, p2)`: Check if direct path avoids forbidden zones.  
-- `_get_safe_path_and_distance(from_idx, to_idx)`: Get shortest safe path.  
-- `_move_cost(from_idx, to_idx, current_angle)`: Compute motion cost including angular rotation.  
-- `nearest_neighbor()`: Construct path using heuristic:  
-  - Prefer directly reachable dies.  
-  - Use detours only when necessary.  
-- `_path_cost(path)`: Compute total motion time.  
-- `solve(restarts=20)`: Run solver with restarts, return best path and time.  
+## 🚀 Usage
 
----
+Each solution can be run independently:
 
-### 5. `TSPRunner`
-Top-level runner that executes the solver.
+```python
+# Example: Run Milestone 4 solution
+python Solutions/Solution_Milestone_4/milestone_4.py
 
-**Responsibilities:**
-- Load input JSON.  
-- Run solver.  
-- Build final path with intermediate waypoints only when needed.  
-- Save output JSON.  
+# Input: JSON file with dies, constraints, and forbidden zones
+# Output: Optimal path with total time
+```
 
-**Output Example:**
+### Input Format
 ```json
 {
-  "TotalTime": 123.456,
-  "Path": [[x0,y0],[x1,y1],...]
+  "InitialPosition": [-100, 0],
+  "InitialAngle": 0,
+  "StageVelocity": 50,
+  "StageAcceleration": 100,
+  "CameraVelocity": 10,
+  "CameraAcceleration": 20,
+  "WaferDiameter": 300,
+  "Dies": [
+    {
+      "Corners": [[x1,y1], [x2,y2], [x3,y3], [x4,y4]]
+    }
+  ],
+  "ForbiddenZones": [
+    {
+      "BottomLeft": [-30, -30],
+      "TopRight": [30, 30]
+    }
+  ]
 }
 ```
 
-**`🧩 Workflow`**
+### Output Format
+```json
+{
+  "TotalTime": 123.456,
+  "Path": [[x0,y0], [x1,y1], [x2,y2], ...]
+}
+```
 
-1. **Input JSON is loaded** (`TSPInputLoader`).  
-2. **Points & forbidden zones are processed.**  
-3. **Visibility graph** is built with obstacle corners.  
-4. **Stage times** are precomputed.  
-5. **Nearest-neighbor heuristic** finds a valid die visiting order.  
-6. **Final path** is constructed with detours only when necessary.  
-7. **Output JSON** is written with total time and path.  
+## 🎓 Learning Objectives
+
+This workshop demonstrates:
+- **Algorithm Design**: Progression from exact to heuristic approaches
+- **Constraint Handling**: Adding realistic manufacturing constraints incrementally  
+- **Optimization Techniques**: DP, branch-and-bound, local search, graph algorithms
+- **Software Engineering**: Modular design, code reuse, and incremental development
+- **Real-world Applications**: Semiconductor manufacturing, robotics, and motion planning
+
+## 🔧 Technical Highlights
+
+- **Exact Solutions**: Guaranteed optimal for small instances (≤15 dies)
+- **Scalable Heuristics**: Handle hundreds of dies efficiently
+- **Motion Realism**: Trapezoidal velocity profiles with acceleration limits
+- **Obstacle Handling**: Visibility graphs for complex geometric constraints
+- **Robust Implementation**: Path validation, repair mechanisms, and error handling
+
+Perfect for learning advanced algorithms, optimization techniques, and their application to real manufacturing problems!  
